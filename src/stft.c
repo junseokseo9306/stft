@@ -1,4 +1,4 @@
-#include "stft.h"
+#include "../include/stft.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "kiss_fft.h"
+#include "../src/kiss_fft.h"
 
 int main() {
     float fs = 125.0;

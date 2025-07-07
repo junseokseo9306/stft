@@ -2,7 +2,7 @@
 #define STFT_H
 
 #include <stdbool.h>
-#include "kiss_fft.h"
+#include "../src/kiss_fft.h"
 
 #ifdef __cplusplus
 extern "C" {
