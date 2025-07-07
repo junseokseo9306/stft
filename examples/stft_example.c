@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include "stft.h"
+#include "../include/stft.h"
 
 int main() {
     float fs = 125.0;
@@ -31,7 +31,7 @@ int main() {
         float **power_db = stft_get_power_spectrogram_db(result);
         
         // Save to CSV file
-        FILE *csv_file = fopen("stft_result.csv", "w");
+        FILE *csv_file = fopen("../data/stft_result.csv", "w");
         if (csv_file) {
             // Write power data in dB (no header, just values)
             for(int frame = 0; frame < result->frame_count; frame++) {
