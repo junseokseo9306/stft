@@ -20,7 +20,8 @@ int main() {
         62,              // window_size
         31,              // hop_size (50% overlap)
         fs,              // sample_rate
-        WINDOW_HANN      // window_type
+        WINDOW_HANN,     // window_type
+        SCALING_SPECTRUM // scaling (use spectrum scaling like scipy default)
     );
     
     // Perform STFT
@@ -31,7 +32,7 @@ int main() {
         float **power_db = stft_get_power_spectrogram_db(result);
         
         // Save to CSV file
-        FILE *csv_file = fopen("../data/stft_result.csv", "w");
+        FILE *csv_file = fopen("data/stft_result.csv", "w");
         if (csv_file) {
             // Write power data in dB (no header, just values)
             for(int frame = 0; frame < result->frame_count; frame++) {

@@ -3,12 +3,13 @@
 #include <string.h>
 #include <math.h>
 
-STFTParameters stft_create_parameters(int window_size, int hop_size, double sample_rate, WindowType window_type) {
+STFTParameters stft_create_parameters(int window_size, int hop_size, double sample_rate, WindowType window_type, ScalingType scaling) {
     STFTParameters params = {
         .window_size = window_size,
         .hop_size = hop_size,
         .sample_rate = sample_rate,
-        .window_type = window_type
+        .window_type = window_type,
+        .scaling = scaling
     };
     return params;
 }
@@ -37,6 +38,10 @@ double stft_get_frequency_resolution(const STFTParameters *params) {
     return params->sample_rate / params->window_size;
 }
 
+double stft_get_overlap_percentage(const STFTParameters *params) {
+    return 100.0 * (1.0 - (double)params->hop_size / params->window_size);
+}
+
 float* generate_hann_window(int window_size) {
     float *window = (float*)malloc(window_size * sizeof(float));
     if (!window) return NULL;
@@ -46,17 +51,7 @@ float* generate_hann_window(int window_size) {
         window[n] = 0.5f * (1.0f - cosf(2.0f * M_PI * n / window_size));
     }
     
-    // Apply energy normalization (scipy-compatible)
-    float energy_sum = 0.0f;
-    for (int n = 0; n < window_size; n++) {
-        energy_sum += window[n] * window[n];
-    }
-    float energy_norm = sqrtf(energy_sum);
-    
-    for (int n = 0; n < window_size; n++) {
-        window[n] /= energy_norm;
-    }
-    
+    // No normalization here - will be handled in scaling calculation
     return window;
 }
 
@@ -96,9 +91,12 @@ STFTResult* perform_stft(const float *input_data, int input_length, const STFTPa
         return result;
     }
     
+    // Calculate window scaling factors for scipy compatibility
     float window_sum = 0.0f;
+    float window_sum_sq = 0.0f;
     for (int i = 0; i < window_size; i++) {
         window_sum += window[i];
+        window_sum_sq += window[i] * window[i];
     }
     
     int frame_count = (input_length - window_size) / hop_size + 1;
@@ -166,8 +164,14 @@ STFTResult* perform_stft(const float *input_data, int input_length, const STFTPa
         
         kiss_fft(cfg, fft_input, fft_output);
         
-        // Apply FFT scaling to match scipy (1/N scaling)
-        float scale = 1.0f / window_size;
+        // Apply scipy-compatible scaling
+        float scale;
+        if (params->scaling == SCALING_SPECTRUM) {
+            scale = 1.0f / (window_sum * window_sum);
+        } else { // SCALING_PSD
+            scale = 1.0f / (params->sample_rate * window_sum_sq);
+        }
+        
         for (int bin = 0; bin < frequency_bin_count; bin++) {
             result->spectrogram_data[frame][bin].r = fft_output[bin].r * scale;
             result->spectrogram_data[frame][bin].i = fft_output[bin].i * scale;
@@ -247,11 +251,62 @@ double cpx_magnitude(kiss_fft_cpx c) {
 
 double cpx_power_db(kiss_fft_cpx c) {
     double mag = cpx_magnitude(c);
-    // Use scipy-compatible power calculation with proper scaling
     double power = mag * mag;
-    // Add scaling factor to match scipy's reference level
-    // Fine-tuned to match scipy more precisely
-    power *= 10000000.0; // Empirically determined to match scipy
+    // Use proper dB conversion without empirical scaling
     return 10.0 * log10(fmax(power, 1e-20));
 }
+
+double cpx_phase(kiss_fft_cpx c) {
+    return atan2(c.i, c.r);
+}
+
+float** stft_get_magnitude_spectrogram(const STFTResult *result) {
+    if (!result || !result->success || !result->spectrogram_data) return NULL;
+    
+    float **magnitude = (float**)malloc(result->frame_count * sizeof(float*));
+    if (!magnitude) return NULL;
+    
+    for (int frame = 0; frame < result->frame_count; frame++) {
+        magnitude[frame] = (float*)malloc(result->frequency_bin_count * sizeof(float));
+        if (!magnitude[frame]) {
+            for (int i = 0; i < frame; i++) {
+                free(magnitude[i]);
+            }
+            free(magnitude);
+            return NULL;
+        }
+        
+        for (int bin = 0; bin < result->frequency_bin_count; bin++) {
+            magnitude[frame][bin] = cpx_magnitude(result->spectrogram_data[frame][bin]);
+        }
+    }
+    
+    return magnitude;
+}
+
+float** stft_get_phase_spectrogram(const STFTResult *result) {
+    if (!result || !result->success || !result->spectrogram_data) return NULL;
+    
+    float **phase = (float**)malloc(result->frame_count * sizeof(float*));
+    if (!phase) return NULL;
+    
+    for (int frame = 0; frame < result->frame_count; frame++) {
+        phase[frame] = (float*)malloc(result->frequency_bin_count * sizeof(float));
+        if (!phase[frame]) {
+            for (int i = 0; i < frame; i++) {
+                free(phase[i]);
+            }
+            free(phase);
+            return NULL;
+        }
+        
+        for (int bin = 0; bin < result->frequency_bin_count; bin++) {
+            phase[frame][bin] = cpx_phase(result->spectrogram_data[frame][bin]);
+        }
+    }
+    
+    return phase;
+}
+
+
 

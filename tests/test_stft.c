@@ -52,7 +52,7 @@ void test_hann_window() {
 }
 
 void test_stft_parameters() {
-    STFTParameters params = stft_create_parameters(1024, 512, 44100.0, WINDOW_HANN);
+    STFTParameters params = stft_create_parameters(1024, 512, 44100.0, WINDOW_HANN, SCALING_SPECTRUM);
     
     test_assert(params.window_size == 1024, "Parameter window size");
     test_assert(params.hop_size == 512, "Parameter hop size");
@@ -89,7 +89,7 @@ void test_stft_sine_wave() {
     test_assert(sample_count == 44100, "Sine wave sample count");
     
     if (signal) {
-        STFTParameters params = stft_create_parameters(1024, 512, sample_rate, WINDOW_HANN);
+        STFTParameters params = stft_create_parameters(1024, 512, sample_rate, WINDOW_HANN, SCALING_SPECTRUM);
         STFTResult *result = perform_stft(signal, sample_count, &params);
         
         test_assert(result != NULL, "STFT result creation");
@@ -139,7 +139,7 @@ void test_stft_multi_tone() {
     test_assert(signal != NULL, "Multi-tone sine wave generation");
     
     if (signal) {
-        STFTParameters params = stft_create_parameters(2048, 1024, sample_rate, WINDOW_HANN);
+        STFTParameters params = stft_create_parameters(2048, 1024, sample_rate, WINDOW_HANN, SCALING_SPECTRUM);
         STFTResult *result = perform_stft(signal, sample_count, &params);
         
         test_assert(result != NULL && result->success, "Multi-tone STFT computation");
@@ -178,7 +178,7 @@ void test_stft_timing() {
     test_assert(signal != NULL, "Timing test signal generation");
     
     if (signal) {
-        STFTParameters params = stft_create_parameters(1024, 512, sample_rate, WINDOW_HANN);
+        STFTParameters params = stft_create_parameters(1024, 512, sample_rate, WINDOW_HANN, SCALING_SPECTRUM);
         STFTResult *result = NULL;
         TimingResult *timing = perform_stft_with_timing(signal, sample_count, &params, &result);
         
@@ -195,7 +195,7 @@ void test_stft_timing() {
 }
 
 void test_stft_edge_cases() {
-    STFTParameters params = stft_create_parameters(1024, 512, 44100.0, WINDOW_HANN);
+    STFTParameters params = stft_create_parameters(1024, 512, 44100.0, WINDOW_HANN, SCALING_SPECTRUM);
     
     float short_signal[100] = {0};
     STFTResult *result = perform_stft(short_signal, 100, &params);
@@ -223,7 +223,7 @@ void test_spectrogram_extraction() {
     test_assert(signal != NULL, "Test signal for spectrogram extraction");
     
     if (signal) {
-        STFTParameters params = stft_create_parameters(1024, 512, sample_rate, WINDOW_HANN);
+        STFTParameters params = stft_create_parameters(1024, 512, sample_rate, WINDOW_HANN, SCALING_SPECTRUM);
         STFTResult *result = perform_stft(signal, sample_count, &params);
         
         if (result && result->success) {
@@ -260,7 +260,7 @@ void test_time_varying_signal() {
     test_assert(signal != NULL, "Time-varying signal generation");
     
     if (signal) {
-        STFTParameters params = stft_create_parameters(1024, 256, sample_rate, WINDOW_HANN);
+        STFTParameters params = stft_create_parameters(1024, 256, sample_rate, WINDOW_HANN, SCALING_SPECTRUM);
         STFTResult *result = perform_stft(signal, sample_count, &params);
         
         test_assert(result != NULL && result->success, "Time-varying signal STFT");
